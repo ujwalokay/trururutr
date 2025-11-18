@@ -320,29 +320,6 @@ export default function Settings() {
     setPs5TimeSlots(ps5TimeSlots.filter((_, i) => i !== index));
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleString();
-  };
-
-  const getStatusColor = (percentUsed: number) => {
-    if (percentUsed >= 90) return "text-red-500";
-    if (percentUsed >= 75) return "text-yellow-500";
-    return "text-green-500";
-  };
-
-  const getStatusIcon = (percentUsed: number) => {
-    if (percentUsed >= 90) return <AlertTriangle className="h-4 w-4 text-red-500" />;
-    if (percentUsed >= 75) return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-    return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-  };
-
-  const getProgressColor = (percentUsed: number) => {
-    if (percentUsed >= 90) return "[&>*]:bg-red-500";
-    if (percentUsed >= 75) return "[&>*]:bg-yellow-500";
-    return "[&>*]:bg-green-500";
-  };
-
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">

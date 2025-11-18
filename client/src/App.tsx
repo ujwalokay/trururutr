@@ -9,7 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TourProvider, useTour } from "@/contexts/TourContext";
-import { Keyboard } from "lucide-react";
+import { Keyboard, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
 import { useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks/useKeyboardShortcuts";
