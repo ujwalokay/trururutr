@@ -517,8 +517,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { bookingIds, cashAmount, upiAmount } = req.body;
       
-      console.log('Split payment request - bookingIds:', bookingIds);
-      
       if (!bookingIds || !Array.isArray(bookingIds) || bookingIds.length === 0) {
         return res.status(400).json({ message: "Booking IDs are required" });
       }
@@ -535,11 +533,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const bookings = await Promise.all(bookingIds.map(id => storage.getBooking(id)));
-      console.log('Found bookings:', bookings.map(b => b ? b.id : 'NOT FOUND'));
       const missingBookings = bookings.filter(b => !b);
       if (missingBookings.length > 0) {
-        const allBookings = await storage.getAllBookings();
-        console.log('All available booking IDs:', allBookings.map(b => b.id));
         return res.status(404).json({ message: "One or more bookings not found" });
       }
       
