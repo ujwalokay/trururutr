@@ -328,14 +328,26 @@ export class DatabaseStorage implements IStorage {
       const staffPassword = process.env.STAFF_PASSWORD;
       
       if (!adminUsername || !adminPassword) {
-        console.error('❌ ERROR: No admin user exists and ADMIN_USERNAME/ADMIN_PASSWORD environment variables are not set!');
-        console.error('❌ Please set ADMIN_USERNAME and ADMIN_PASSWORD to create an admin user.');
-        console.error('❌ The application will continue without users.');
+        console.log('⚠️  No admin credentials provided - creating demo user for demo mode');
+        console.log('ℹ️  Demo mode enabled: All features will work without authentication setup');
+        
+        await this.createUser({
+          username: "demo",
+          password: "demo1234",
+          role: "admin"
+        }, true);
+        console.log(`✅ Demo user created - application ready in demo mode`);
         return;
       }
       
       if (adminPassword.length < 8) {
-        console.error('❌ WARNING: ADMIN_PASSWORD must be at least 8 characters long. Admin user not created.');
+        console.error('❌ WARNING: ADMIN_PASSWORD must be at least 8 characters long. Creating demo user instead.');
+        await this.createUser({
+          username: "demo",
+          password: "demo1234",
+          role: "admin"
+        }, true);
+        console.log(`✅ Demo user created - application ready in demo mode`);
       } else {
         // Create admin user with email if provided (skip strict validation for initial setup)
         const adminEmail = process.env.ADMIN_EMAIL;

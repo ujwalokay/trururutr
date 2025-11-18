@@ -38,7 +38,7 @@ import { NetworkAlert } from "@/components/NetworkAlert";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { InactivityRefreshPrompt } from "@/components/InactivityRefreshPrompt";
 import { FlipClock } from "@/components/FlipClock";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
 
 function Router() {
@@ -98,6 +98,22 @@ function App() {
     username: "Demo User",
     role: "admin"
   };
+
+  // Auto-login demo user on mount to establish backend session
+  useEffect(() => {
+    const autoLoginDemo = async () => {
+      try {
+        await fetch('/api/auth/demo-login', {
+          method: 'POST',
+          credentials: 'include',
+        });
+      } catch (error) {
+        console.error('Demo auto-login failed:', error);
+      }
+    };
+    
+    autoLoginDemo();
+  }, []);
 
   // Define global keyboard shortcuts
   const globalShortcuts: KeyboardShortcut[] = [

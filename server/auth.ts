@@ -191,6 +191,42 @@ export function registerAuthRoutes(app: Express) {
   app.post("/api/auth/logout", logoutHandler);
   app.get("/api/auth/me", getCurrentUserHandler);
   
+  // Demo mode auto-login endpoint
+  app.post("/api/auth/demo-login", async (req: Request, res: Response) => {
+    try {
+      // Check if demo user exists
+      const demoUser = await storage.getUserByUsername("demo");
+      
+      if (!demoUser) {
+        return res.status(404).json({ message: "Demo mode not available" });
+      }
+      
+      // Create session for demo user
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Demo session creation error:', err);
+          return res.status(500).json({ message: "Demo login failed" });
+        }
+        
+        req.session.userId = demoUser.id;
+        req.session.username = demoUser.username!;
+        req.session.role = demoUser.role!;
+        
+        console.log('✅ Demo user auto-logged in');
+        
+        res.json({
+          id: demoUser.id,
+          username: "Demo User",
+          role: demoUser.role,
+          onboardingCompleted: true,
+        });
+      });
+    } catch (error: any) {
+      console.error('Demo login error:', error);
+      res.status(500).json({ message: "Demo login failed" });
+    }
+  });
+  
   app.post("/api/auth/complete-onboarding", requireAuth, async (req: Request, res: Response) => {
     try {
       if (!req.session.userId) {
