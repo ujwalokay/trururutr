@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Sidebar,
   SidebarContent,
@@ -184,40 +183,32 @@ export function AppSidebar() {
                     
                     return (
                       <SidebarMenuItem key={item.title}>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <SidebarMenuButton 
-                                asChild 
-                                isActive={isActive}
-                                className={isActive ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 font-medium hover:bg-purple-100 dark:hover:bg-purple-950/50' : ''}
-                                data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
-                                data-joyride={`sidebar-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={isActive}
+                          className={isActive ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 font-medium hover:bg-purple-100 dark:hover:bg-purple-950/50' : ''}
+                          data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                          data-joyride={`sidebar-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                          title={item.tooltip}
+                        >
+                          <Link href={item.url}>
+                            <item.icon className={isActive ? 'text-purple-600 dark:text-purple-400' : ''} />
+                            <span className="flex items-center gap-1.5 flex-1">
+                              {item.title}
+                              {item.hasAI && (
+                                <Sparkles className="h-3 w-3 text-purple-500 animate-pulse" />
+                              )}
+                            </span>
+                            {count > 0 && (
+                              <Badge 
+                                variant="secondary" 
+                                className="ml-auto bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-0"
                               >
-                                <Link href={item.url}>
-                                  <item.icon className={isActive ? 'text-purple-600 dark:text-purple-400' : ''} />
-                                  <span className="flex items-center gap-1.5 flex-1">
-                                    {item.title}
-                                    {item.hasAI && (
-                                      <Sparkles className="h-3 w-3 text-purple-500 animate-pulse" />
-                                    )}
-                                  </span>
-                                  {count > 0 && (
-                                    <Badge 
-                                      variant="secondary" 
-                                      className="ml-auto bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-0"
-                                    >
-                                      {count}
-                                    </Badge>
-                                  )}
-                                </Link>
-                              </SidebarMenuButton>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                              <p>{item.tooltip}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                                {count}
+                              </Badge>
+                            )}
+                          </Link>
+                        </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
                   })}
