@@ -1,9 +1,7 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { queryClient, apiRequest } from "@/lib/queryClient";
 import { DeviceConfigCard } from "@/components/DeviceConfigCard";
 import { PricingTable } from "@/components/PricingTable";
 import { HappyHoursPricing } from "@/components/HappyHoursPricing";
@@ -12,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { localStorageService } from "@/lib/localStorageService";
 import type { DeviceConfig, PricingConfig, HappyHoursConfig, HappyHoursPricing as HappyHoursPricingType } from "@shared/schema";
 
 interface TimeSlot {
@@ -22,26 +21,6 @@ interface TimeSlot {
 export default function Settings() {
   const { toast } = useToast();
   
-  // Fetch device configs
-  const { data: deviceConfigs } = useQuery<DeviceConfig[]>({
-    queryKey: ['/api/device-config'],
-  });
-
-  // Fetch pricing configs
-  const { data: pricingConfigs } = useQuery<PricingConfig[]>({
-    queryKey: ['/api/pricing-config'],
-  });
-
-  // Fetch happy hours configs
-  const { data: happyHoursConfigs } = useQuery<HappyHoursConfig[]>({
-    queryKey: ['/api/happy-hours-config'],
-  });
-
-  // Fetch happy hours pricing
-  const { data: happyHoursPricing } = useQuery<HappyHoursPricingType[]>({
-    queryKey: ['/api/happy-hours-pricing'],
-  });
-
   // Local state for device configs
   const [pcConfig, setPcConfig] = useState({ count: 30, seats: [] as { name: string; visible: boolean }[] });
   const [ps5Config, setPs5Config] = useState({ count: 20, seats: [] as { name: string; visible: boolean }[] });
@@ -60,206 +39,116 @@ export default function Settings() {
   const [pcHappyHoursPricing, setPcHappyHoursPricing] = useState<{ duration: string; price: number; personCount?: number }[]>([]);
   const [ps5HappyHoursPricing, setPs5HappyHoursPricing] = useState<{ duration: string; price: number; personCount?: number }[]>([]);
 
-  // Initialize local state from API data
+  // Load data from localStorage on mount
   useEffect(() => {
-    if (deviceConfigs) {
-      const pc = deviceConfigs.find((c) => c.category === "PC");
-      const ps5 = deviceConfigs.find((c) => c.category === "PS5");
+    loadAllSettings();
+  }, []);
 
-      if (pc) {
-        setPcConfig({
-          count: pc.count,
-          seats: pc.seats.map((name) => ({ name, visible: true })),
-        });
-      }
+  const loadAllSettings = () => {
+    const deviceConfigs = localStorageService.getAllDeviceConfigs();
+    const pricingConfigs = localStorageService.getAllPricingConfigs();
+    const happyHoursConfigs = localStorageService.getAllHappyHoursConfigs();
+    const happyHoursPricing = localStorageService.getAllHappyHoursPricing();
 
-      if (ps5) {
-        setPs5Config({
-          count: ps5.count,
-          seats: ps5.seats.map((name) => ({ name, visible: true })),
-        });
-      }
+    // Load device configs
+    const pc = deviceConfigs.find((c) => c.category === "PC");
+    const ps5 = deviceConfigs.find((c) => c.category === "PS5");
+
+    if (pc) {
+      setPcConfig({
+        count: pc.count,
+        seats: pc.seats.map((name) => ({ name, visible: true })),
+      });
     }
-  }, [deviceConfigs]);
 
-  useEffect(() => {
-    if (pricingConfigs) {
-      const pcConfigs = pricingConfigs.filter((c) => c.category === "PC");
-      const ps5Configs = pricingConfigs.filter((c) => c.category === "PS5");
-
-      setPcPricing(pcConfigs.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
-      setPs5Pricing(ps5Configs.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
+    if (ps5) {
+      setPs5Config({
+        count: ps5.count,
+        seats: ps5.seats.map((name) => ({ name, visible: true })),
+      });
     }
-  }, [pricingConfigs]);
 
-  useEffect(() => {
-    if (happyHoursConfigs) {
-      const pcConfigs = happyHoursConfigs.filter((c) => c.category === "PC");
-      const ps5Configs = happyHoursConfigs.filter((c) => c.category === "PS5");
+    // Load pricing configs
+    const pcConfigs = pricingConfigs.filter((c) => c.category === "PC");
+    const ps5Configs = pricingConfigs.filter((c) => c.category === "PS5");
 
-      setPcHappyHoursEnabled(pcConfigs.length > 0 && pcConfigs[0].enabled === 1);
-      setPs5HappyHoursEnabled(ps5Configs.length > 0 && ps5Configs[0].enabled === 1);
+    setPcPricing(pcConfigs.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
+    setPs5Pricing(ps5Configs.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
 
-      setPcTimeSlots(pcConfigs.map((c) => ({ startTime: c.startTime, endTime: c.endTime })));
-      setPs5TimeSlots(ps5Configs.map((c) => ({ startTime: c.startTime, endTime: c.endTime })));
-    }
-  }, [happyHoursConfigs]);
+    // Load happy hours configs
+    const pcHHConfigs = happyHoursConfigs.filter((c) => c.category === "PC");
+    const ps5HHConfigs = happyHoursConfigs.filter((c) => c.category === "PS5");
 
-  useEffect(() => {
-    if (happyHoursPricing) {
-      const pcPricing = happyHoursPricing.filter((c) => c.category === "PC");
-      const ps5Pricing = happyHoursPricing.filter((c) => c.category === "PS5");
+    setPcHappyHoursEnabled(pcHHConfigs.length > 0 && pcHHConfigs[0].enabled === 1);
+    setPs5HappyHoursEnabled(ps5HHConfigs.length > 0 && ps5HHConfigs[0].enabled === 1);
 
-      setPcHappyHoursPricing(pcPricing.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
-      setPs5HappyHoursPricing(ps5Pricing.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
-    }
-  }, [happyHoursPricing]);
+    setPcTimeSlots(pcHHConfigs.map((c) => ({ startTime: c.startTime, endTime: c.endTime })));
+    setPs5TimeSlots(ps5HHConfigs.map((c) => ({ startTime: c.startTime, endTime: c.endTime })));
 
-  // Save mutations
-  const saveDeviceConfigMutation = useMutation({
-    mutationFn: async ({ category, count, seats }: { category: string; count: number; seats: string[] }) => {
-      return apiRequest("POST", "/api/device-config", { category, count, seats });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/device-config'] });
-      queryClient.invalidateQueries({ queryKey: ['device-configs'] });
-      toast({ title: "Success", description: "Device configuration saved" });
-    },
-    onError: (error: any) => {
-      toast({ 
-        title: "Error", 
-        description: error.message || "Failed to save device configuration",
-        variant: "destructive" 
-      });
-    },
-  });
+    // Load happy hours pricing
+    const pcHHPricing = happyHoursPricing.filter((c) => c.category === "PC");
+    const ps5HHPricing = happyHoursPricing.filter((c) => c.category === "PS5");
 
-  const savePricingMutation = useMutation({
-    mutationFn: async ({ category, configs }: { category: string; configs: { duration: string; price: number; personCount?: number }[] }) => {
-      return apiRequest("POST", "/api/pricing-config", {
-        category,
-        configs: configs.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/pricing-config'] });
-      toast({ title: "Success", description: "Pricing configuration saved" });
-    },
-    onError: (error: any) => {
-      toast({ 
-        title: "Error", 
-        description: error.message || "Failed to save pricing configuration",
-        variant: "destructive" 
-      });
-    },
-  });
+    setPcHappyHoursPricing(pcHHPricing.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
+    setPs5HappyHoursPricing(ps5HHPricing.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
+  };
 
-  const saveHappyHoursConfigMutation = useMutation({
-    mutationFn: async ({ category, enabled, timeSlots }: { category: string; enabled: boolean; timeSlots: TimeSlot[] }) => {
-      return apiRequest("POST", "/api/happy-hours-config", {
-        category,
-        configs: timeSlots.map((slot) => ({ startTime: slot.startTime, endTime: slot.endTime, enabled: enabled ? 1 : 0 })),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/happy-hours-config'] });
-      toast({ title: "Success", description: "Happy hours configuration saved" });
-    },
-    onError: (error: any) => {
-      toast({ 
-        title: "Error", 
-        description: error.message || "Failed to save happy hours configuration",
-        variant: "destructive" 
-      });
-    },
-  });
-
-  const saveHappyHoursPricingMutation = useMutation({
-    mutationFn: async ({ category, configs }: { category: string; configs: { duration: string; price: number; personCount?: number }[] }) => {
-      return apiRequest("POST", "/api/happy-hours-pricing", {
-        category,
-        configs: configs.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/happy-hours-pricing'] });
-      toast({ title: "Success", description: "Happy hours pricing saved" });
-    },
-    onError: (error: any) => {
-      toast({ 
-        title: "Error", 
-        description: error.message || "Failed to save happy hours pricing",
-        variant: "destructive" 
-      });
-    },
-  });
-
-  const handleSaveAll = async () => {
+  const handleSaveAll = () => {
     try {
-      // Save all configurations in parallel
-      const savePromises = [
-        // Device configs
-        apiRequest("POST", "/api/device-config", {
-          category: "PC",
-          count: pcConfig.count,
-          seats: pcConfig.seats.map((s) => s.name),
-        }),
-        apiRequest("POST", "/api/device-config", {
-          category: "PS5",
-          count: ps5Config.count,
-          seats: ps5Config.seats.map((s) => s.name),
-        }),
-        // Pricing
-        apiRequest("POST", "/api/pricing-config", {
-          category: "PC",
-          configs: pcPricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
-        }),
-        apiRequest("POST", "/api/pricing-config", {
-          category: "PS5",
-          configs: ps5Pricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
-        }),
-        // Happy hours config
-        apiRequest("POST", "/api/happy-hours-config", {
-          category: "PC",
-          configs: (pcTimeSlots.length > 0 ? pcTimeSlots : [{ startTime: "11:00", endTime: "14:00" }])
-            .map((slot) => ({ startTime: slot.startTime, endTime: slot.endTime, enabled: pcHappyHoursEnabled ? 1 : 0 })),
-        }),
-        apiRequest("POST", "/api/happy-hours-config", {
-          category: "PS5",
-          configs: (ps5TimeSlots.length > 0 ? ps5TimeSlots : [{ startTime: "11:00", endTime: "14:00" }])
-            .map((slot) => ({ startTime: slot.startTime, endTime: slot.endTime, enabled: ps5HappyHoursEnabled ? 1 : 0 })),
-        }),
-      ];
+      // Save device configs
+      localStorageService.saveDeviceConfig({
+        category: "PC",
+        count: pcConfig.count,
+        seats: pcConfig.seats.map((s) => s.name),
+      });
 
-      // Add happy hours pricing if exists
+      localStorageService.saveDeviceConfig({
+        category: "PS5",
+        count: ps5Config.count,
+        seats: ps5Config.seats.map((s) => s.name),
+      });
+
+      // Save pricing configs
+      localStorageService.savePricingConfigs("PC", pcPricing.map((c) => ({
+        category: "PC",
+        duration: c.duration,
+        price: c.price.toString(),
+        personCount: c.personCount || 1,
+      })));
+
+      localStorageService.savePricingConfigs("PS5", ps5Pricing.map((c) => ({
+        category: "PS5",
+        duration: c.duration,
+        price: c.price.toString(),
+        personCount: c.personCount || 1,
+      })));
+
+      // Save happy hours configs
+      localStorageService.saveHappyHoursConfigs("PC", (pcTimeSlots.length > 0 ? pcTimeSlots : [{ startTime: "11:00", endTime: "14:00" }])
+        .map((slot) => ({ category: "PC", startTime: slot.startTime, endTime: slot.endTime, enabled: pcHappyHoursEnabled ? 1 : 0 })));
+
+      localStorageService.saveHappyHoursConfigs("PS5", (ps5TimeSlots.length > 0 ? ps5TimeSlots : [{ startTime: "11:00", endTime: "14:00" }])
+        .map((slot) => ({ category: "PS5", startTime: slot.startTime, endTime: slot.endTime, enabled: ps5HappyHoursEnabled ? 1 : 0 })));
+
+      // Save happy hours pricing if exists
       if (pcHappyHoursPricing.length > 0) {
-        savePromises.push(
-          apiRequest("POST", "/api/happy-hours-pricing", {
-            category: "PC",
-            configs: pcHappyHoursPricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
-          })
-        );
+        localStorageService.saveHappyHoursPricing("PC", pcHappyHoursPricing.map((c) => ({
+          category: "PC",
+          duration: c.duration,
+          price: c.price.toString(),
+          personCount: c.personCount || 1,
+        })));
       }
+
       if (ps5HappyHoursPricing.length > 0) {
-        savePromises.push(
-          apiRequest("POST", "/api/happy-hours-pricing", {
-            category: "PS5",
-            configs: ps5HappyHoursPricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
-          })
-        );
+        localStorageService.saveHappyHoursPricing("PS5", ps5HappyHoursPricing.map((c) => ({
+          category: "PS5",
+          duration: c.duration,
+          price: c.price.toString(),
+          personCount: c.personCount || 1,
+        })));
       }
 
-      // Wait for all saves to complete
-      await Promise.all(savePromises);
-
-      // Invalidate all queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/device-config'] });
-      queryClient.invalidateQueries({ queryKey: ['device-configs'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/pricing-config'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/happy-hours-config'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/happy-hours-pricing'] });
-
-      // Show single success toast
       toast({
         title: "Settings Saved",
         description: "All configurations have been saved successfully!",
@@ -360,140 +249,154 @@ export default function Settings() {
       <div>
         <h2 className="text-2xl font-bold mb-4">Pricing Configuration</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <PricingTable category="PC" slots={pcPricing} onUpdateSlots={setPcPricing} />
-          <PricingTable category="PS5" slots={ps5Pricing} onUpdateSlots={setPs5Pricing} />
-        </div>
-      </div>
-
-      {/* Happy Hours Time Slots */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Happy Hours Time Slots</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Define when happy hours are active. Enable/disable and set time periods for special pricing.
-        </p>
-        <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>PC</CardTitle>
-                  <CardDescription>Configure happy hours time slots and pricing</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="pc-enabled">Enabled</Label>
-                  <Switch id="pc-enabled" checked={pcHappyHoursEnabled} onCheckedChange={setPcHappyHoursEnabled} />
-                </div>
-              </div>
+              <CardTitle>PC Pricing</CardTitle>
+              <CardDescription>Set pricing for PC gaming sessions</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {pcTimeSlots.map((slot, index) => (
-                <div key={index} className="space-y-2 p-3 rounded-md border">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="grid grid-cols-2 gap-2 flex-1">
-                      <div>
-                        <Label className="text-xs">Start Time</Label>
-                        <Input
-                          type="time"
-                          value={slot.startTime}
-                          onChange={(e) => {
-                            const newSlots = [...pcTimeSlots];
-                            newSlots[index].startTime = e.target.value;
-                            setPcTimeSlots(newSlots);
-                          }}
-                          data-testid={`input-pc-start-${index}`}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">End Time</Label>
-                        <Input
-                          type="time"
-                          value={slot.endTime}
-                          onChange={(e) => {
-                            const newSlots = [...pcTimeSlots];
-                            newSlots[index].endTime = e.target.value;
-                            setPcTimeSlots(newSlots);
-                          }}
-                          data-testid={`input-pc-end-${index}`}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removePcTimeSlot(index)}
-                      className="mt-5"
-                      data-testid={`button-remove-pc-timeslot-${index}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <Button variant="outline" className="w-full" onClick={addPcTimeSlot} data-testid="button-add-pc-timeslot">
-                + Add Time Slot
-              </Button>
+            <CardContent>
+              <PricingTable
+                pricing={pcPricing}
+                onChange={setPcPricing}
+              />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <CardTitle>PS5 Pricing</CardTitle>
+              <CardDescription>Set pricing for PS5 gaming sessions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PricingTable
+                pricing={ps5Pricing}
+                onChange={setPs5Pricing}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Happy Hours Configuration */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Happy Hours Configuration</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* PC Happy Hours */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <CardTitle>PS5</CardTitle>
-                  <CardDescription>Configure happy hours time slots and pricing</CardDescription>
+                  <CardTitle>PC Happy Hours</CardTitle>
+                  <CardDescription>Configure discount time slots for PC</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="ps5-enabled">Enabled</Label>
-                  <Switch id="ps5-enabled" checked={ps5HappyHoursEnabled} onCheckedChange={setPs5HappyHoursEnabled} />
+                  <Switch
+                    checked={pcHappyHoursEnabled}
+                    onCheckedChange={setPcHappyHoursEnabled}
+                    data-testid="switch-pc-happy-hours"
+                  />
+                  <Label htmlFor="pc-happy-hours-enabled" className="text-sm">
+                    {pcHappyHoursEnabled ? "Enabled" : "Disabled"}
+                  </Label>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {pcTimeSlots.map((slot, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    type="time"
+                    value={slot.startTime}
+                    onChange={(e) => {
+                      const updated = [...pcTimeSlots];
+                      updated[index].startTime = e.target.value;
+                      setPcTimeSlots(updated);
+                    }}
+                    data-testid={`input-pc-happy-hours-start-${index}`}
+                  />
+                  <span>to</span>
+                  <Input
+                    type="time"
+                    value={slot.endTime}
+                    onChange={(e) => {
+                      const updated = [...pcTimeSlots];
+                      updated[index].endTime = e.target.value;
+                      setPcTimeSlots(updated);
+                    }}
+                    data-testid={`input-pc-happy-hours-end-${index}`}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removePcTimeSlot(index)}
+                    data-testid={`button-remove-pc-timeslot-${index}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button onClick={addPcTimeSlot} variant="outline" data-testid="button-add-pc-timeslot">
+                Add Time Slot
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* PS5 Happy Hours */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <CardTitle>PS5 Happy Hours</CardTitle>
+                  <CardDescription>Configure discount time slots for PS5</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={ps5HappyHoursEnabled}
+                    onCheckedChange={setPs5HappyHoursEnabled}
+                    data-testid="switch-ps5-happy-hours"
+                  />
+                  <Label htmlFor="ps5-happy-hours-enabled" className="text-sm">
+                    {ps5HappyHoursEnabled ? "Enabled" : "Disabled"}
+                  </Label>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {ps5TimeSlots.map((slot, index) => (
-                <div key={index} className="space-y-2 p-3 rounded-md border">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="grid grid-cols-2 gap-2 flex-1">
-                      <div>
-                        <Label className="text-xs">Start Time</Label>
-                        <Input
-                          type="time"
-                          value={slot.startTime}
-                          onChange={(e) => {
-                            const newSlots = [...ps5TimeSlots];
-                            newSlots[index].startTime = e.target.value;
-                            setPs5TimeSlots(newSlots);
-                          }}
-                          data-testid={`input-ps5-start-${index}`}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">End Time</Label>
-                        <Input
-                          type="time"
-                          value={slot.endTime}
-                          onChange={(e) => {
-                            const newSlots = [...ps5TimeSlots];
-                            newSlots[index].endTime = e.target.value;
-                            setPs5TimeSlots(newSlots);
-                          }}
-                          data-testid={`input-ps5-end-${index}`}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removePs5TimeSlot(index)}
-                      className="mt-5"
-                      data-testid={`button-remove-ps5-timeslot-${index}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    type="time"
+                    value={slot.startTime}
+                    onChange={(e) => {
+                      const updated = [...ps5TimeSlots];
+                      updated[index].startTime = e.target.value;
+                      setPs5TimeSlots(updated);
+                    }}
+                    data-testid={`input-ps5-happy-hours-start-${index}`}
+                  />
+                  <span>to</span>
+                  <Input
+                    type="time"
+                    value={slot.endTime}
+                    onChange={(e) => {
+                      const updated = [...ps5TimeSlots];
+                      updated[index].endTime = e.target.value;
+                      setPs5TimeSlots(updated);
+                    }}
+                    data-testid={`input-ps5-happy-hours-end-${index}`}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removePs5TimeSlot(index)}
+                    data-testid={`button-remove-ps5-timeslot-${index}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
-              <Button variant="outline" className="w-full" onClick={addPs5TimeSlot} data-testid="button-add-ps5-timeslot">
-                + Add Time Slot
+              <Button onClick={addPs5TimeSlot} variant="outline" data-testid="button-add-ps5-timeslot">
+                Add Time Slot
               </Button>
             </CardContent>
           </Card>
@@ -503,12 +406,32 @@ export default function Settings() {
       {/* Happy Hours Pricing */}
       <div>
         <h2 className="text-2xl font-bold mb-4">Happy Hours Pricing</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Set pricing tiers that apply during happy hours time slots. These prices are active only when happy hours are enabled and within the configured time periods.
-        </p>
         <div className="grid gap-4 md:grid-cols-2">
-          <HappyHoursPricing category="PC" slots={pcHappyHoursPricing} onUpdateSlots={setPcHappyHoursPricing} />
-          <HappyHoursPricing category="PS5" slots={ps5HappyHoursPricing} onUpdateSlots={setPs5HappyHoursPricing} />
+          <Card>
+            <CardHeader>
+              <CardTitle>PC Happy Hours Pricing</CardTitle>
+              <CardDescription>Special pricing during PC happy hours</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <HappyHoursPricing
+                pricing={pcHappyHoursPricing}
+                onChange={setPcHappyHoursPricing}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>PS5 Happy Hours Pricing</CardTitle>
+              <CardDescription>Special pricing during PS5 happy hours</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <HappyHoursPricing
+                pricing={ps5HappyHoursPricing}
+                onChange={setPs5HappyHoursPricing}
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
