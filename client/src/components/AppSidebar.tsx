@@ -1,8 +1,7 @@
-import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, BarChart3, Gamepad2, Sparkles, LogOut, Brain, Package, Receipt } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Wallet, ScrollText, BarChart3, Gamepad2, Sparkles, Brain, Package, Receipt } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/components/ThemeProvider";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -15,7 +14,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarFooter,
 } from "@/components/ui/sidebar";
 import logoDark from "@assets/airavoto_logo.png";
 import logoLight from "@assets/airavoto_logo.png";
@@ -125,13 +123,6 @@ const menuCategories: MenuCategory[] = [
         icon: Settings,
         tooltip: "Configure devices, pricing, and happy hours settings",
       },
-      {
-        title: "Terms & Conditions",
-        url: "/terms",
-        icon: Scale,
-        adminOnly: true,
-        tooltip: "View and manage service terms and conditions",
-      },
     ],
   },
 ];
@@ -139,7 +130,6 @@ const menuCategories: MenuCategory[] = [
 export function AppSidebar() {
   const [location] = useLocation();
   const { theme } = useTheme();
-  const { toast } = useToast();
   const { isStaff } = useAuth();
 
   const { data: foodItems = [] } = useQuery<FoodItem[]>({
@@ -152,18 +142,6 @@ export function AppSidebar() {
 
   const counts = {
     lowStock: lowStockCount,
-  };
-
-  const handleLogout = async () => {
-    try {
-      window.location.href = "/api/auth/google/logout";
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to logout. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
 
   return (
@@ -249,26 +227,6 @@ export function AppSidebar() {
           );
         })}
       </SidebarContent>
-
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton onClick={handleLogout} data-testid="button-logout">
-                    <LogOut />
-                    <span>Logout</span>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Sign out from your account and return to login page</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }
