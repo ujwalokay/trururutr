@@ -1,39 +1,90 @@
 import type { Booking, InsertBooking, DeviceConfig, PricingConfig } from "@shared/schema";
-import { localStorageService } from "./localStorageService";
 
 export async function fetchBookings(): Promise<Booking[]> {
-  return Promise.resolve(localStorageService.getAllBookings());
+  const response = await fetch('/api/bookings', {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch bookings: ${response.statusText}`);
+  }
+  return response.json();
 }
 
 export async function createBooking(booking: InsertBooking): Promise<Booking> {
-  const newBooking = localStorageService.createBooking(booking);
-  return Promise.resolve(newBooking);
+  const response = await fetch('/api/bookings', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(booking),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create booking');
+  }
+  
+  return response.json();
 }
 
 export async function updateBooking(id: string, data: Partial<InsertBooking>): Promise<Booking> {
-  const updated = localStorageService.updateBooking(id, data);
-  if (!updated) {
-    throw new Error("Booking not found");
+  const response = await fetch(`/api/bookings/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update booking');
   }
-  return Promise.resolve(updated);
+  
+  return response.json();
 }
 
 export async function deleteBooking(id: string): Promise<void> {
-  const deleted = localStorageService.deleteBooking(id);
-  if (!deleted) {
-    throw new Error("Booking not found");
+  const response = await fetch(`/api/bookings/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete booking');
   }
-  return Promise.resolve();
 }
 
 export async function fetchDeviceConfigs(): Promise<DeviceConfig[]> {
-  return Promise.resolve(localStorageService.getAllDeviceConfigs());
+  const response = await fetch('/api/device-config', {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch device configs: ${response.statusText}`);
+  }
+  return response.json();
 }
 
 export async function fetchPricingConfigs(): Promise<PricingConfig[]> {
-  return Promise.resolve(localStorageService.getAllPricingConfigs());
+  const response = await fetch('/api/pricing-config', {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch pricing configs: ${response.statusText}`);
+  }
+  return response.json();
 }
 
 export async function getServerTime(): Promise<Date> {
-  return Promise.resolve(new Date());
+  const response = await fetch('/api/server-time', {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch server time: ${response.statusText}`);
+  }
+  const data = await response.json();
+  return new Date(data.time);
 }
