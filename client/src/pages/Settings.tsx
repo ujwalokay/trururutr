@@ -256,8 +256,9 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <PricingTable
-                pricing={pcPricing}
-                onChange={setPcPricing}
+                category="PC"
+                slots={pcPricing}
+                onUpdateSlots={setPcPricing}
               />
             </CardContent>
           </Card>
@@ -269,8 +270,9 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <PricingTable
-                pricing={ps5Pricing}
-                onChange={setPs5Pricing}
+                category="PS5"
+                slots={ps5Pricing}
+                onUpdateSlots={setPs5Pricing}
               />
             </CardContent>
           </Card>
@@ -414,8 +416,9 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <HappyHoursPricing
-                pricing={pcHappyHoursPricing}
-                onChange={setPcHappyHoursPricing}
+                category="PC"
+                slots={pcHappyHoursPricing}
+                onUpdateSlots={setPcHappyHoursPricing}
               />
             </CardContent>
           </Card>
@@ -427,8 +430,9 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <HappyHoursPricing
-                pricing={ps5HappyHoursPricing}
-                onChange={setPs5HappyHoursPricing}
+                category="PS5"
+                slots={ps5HappyHoursPricing}
+                onUpdateSlots={setPs5HappyHoursPricing}
               />
             </CardContent>
           </Card>

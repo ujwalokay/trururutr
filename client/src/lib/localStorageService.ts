@@ -1,5 +1,6 @@
 import type {
   Booking,
+  InsertBooking,
   FoodItem,
   Expense,
   DeviceConfig,
@@ -21,6 +22,28 @@ const STORAGE_KEYS = {
 
 function generateId(): string {
   return crypto.randomUUID();
+}
+
+function rehydrateBooking(raw: any): Booking {
+  return {
+    ...raw,
+    startTime: new Date(raw.startTime),
+    endTime: new Date(raw.endTime),
+    createdAt: new Date(raw.createdAt),
+    whatsappNumber: raw.whatsappNumber ?? null,
+    bookingType: Array.isArray(raw.bookingType) ? raw.bookingType : [],
+    lastPaymentAction: raw.lastPaymentAction ?? null,
+    foodOrders: Array.isArray(raw.foodOrders) ? raw.foodOrders : [],
+    promotionDetails: raw.promotionDetails ?? null,
+  } as Booking;
+}
+
+function rehydrateExpense(raw: any): Expense {
+  return {
+    ...raw,
+    date: new Date(raw.date),
+    createdAt: new Date(raw.createdAt),
+  } as Expense;
 }
 
 function getFromStorage<T>(key: string, defaultValue: T): T {
@@ -231,7 +254,8 @@ seedDemoData();
 
 export const localStorageService = {
   getAllBookings(): Booking[] {
-    return getFromStorage<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+    const rawBookings = getFromStorage<any[]>(STORAGE_KEYS.BOOKINGS, []);
+    return rawBookings.map(rehydrateBooking);
   },
 
   getBooking(id: string): Booking | undefined {
@@ -239,32 +263,48 @@ export const localStorageService = {
     return bookings.find((b) => b.id === id);
   },
 
-  createBooking(booking: Omit<Booking, "id" | "createdAt">): Booking {
-    const bookings = this.getAllBookings();
+  createBooking(booking: InsertBooking): Booking {
+    const rawBookings = getFromStorage<any[]>(STORAGE_KEYS.BOOKINGS, []);
     const newBooking: Booking = {
       ...booking,
       id: generateId(),
       createdAt: new Date(),
-    };
-    bookings.push(newBooking);
-    saveToStorage(STORAGE_KEYS.BOOKINGS, bookings);
+      whatsappNumber: booking.whatsappNumber ?? null,
+      bookingType: Array.isArray(booking.bookingType) ? booking.bookingType : [],
+      lastPaymentAction: booking.lastPaymentAction ?? null,
+      foodOrders: booking.foodOrders ?? [],
+      promotionDetails: booking.promotionDetails ?? null,
+    } as Booking;
+    rawBookings.push(newBooking);
+    saveToStorage(STORAGE_KEYS.BOOKINGS, rawBookings);
     return newBooking;
   },
 
-  updateBooking(id: string, updates: Partial<Booking>): Booking | null {
-    const bookings = this.getAllBookings();
-    const index = bookings.findIndex((b) => b.id === id);
+  updateBooking(id: string, updates: Partial<InsertBooking>): Booking | null {
+    const rawBookings = getFromStorage<any[]>(STORAGE_KEYS.BOOKINGS, []);
+    const index = rawBookings.findIndex((b) => b.id === id);
     if (index === -1) return null;
 
-    bookings[index] = { ...bookings[index], ...updates };
-    saveToStorage(STORAGE_KEYS.BOOKINGS, bookings);
-    return bookings[index];
+    const normalized: any = { ...updates };
+    if ('whatsappNumber' in normalized && normalized.whatsappNumber === undefined) {
+      normalized.whatsappNumber = null;
+    }
+    if ('lastPaymentAction' in normalized && normalized.lastPaymentAction === undefined) {
+      normalized.lastPaymentAction = null;
+    }
+    if ('promotionDetails' in normalized && normalized.promotionDetails === undefined) {
+      normalized.promotionDetails = null;
+    }
+
+    rawBookings[index] = { ...rawBookings[index], ...normalized };
+    saveToStorage(STORAGE_KEYS.BOOKINGS, rawBookings);
+    return rehydrateBooking(rawBookings[index]);
   },
 
   deleteBooking(id: string): boolean {
-    const bookings = this.getAllBookings();
-    const filtered = bookings.filter((b) => b.id !== id);
-    if (filtered.length === bookings.length) return false;
+    const rawBookings = getFromStorage<any[]>(STORAGE_KEYS.BOOKINGS, []);
+    const filtered = rawBookings.filter((b) => b.id !== id);
+    if (filtered.length === rawBookings.length) return false;
 
     saveToStorage(STORAGE_KEYS.BOOKINGS, filtered);
     return true;
@@ -310,35 +350,36 @@ export const localStorageService = {
   },
 
   getAllExpenses(): Expense[] {
-    return getFromStorage<Expense[]>(STORAGE_KEYS.EXPENSES, []);
+    const rawExpenses = getFromStorage<any[]>(STORAGE_KEYS.EXPENSES, []);
+    return rawExpenses.map(rehydrateExpense);
   },
 
   createExpense(expense: Omit<Expense, "id" | "createdAt">): Expense {
-    const expenses = this.getAllExpenses();
+    const rawExpenses = getFromStorage<any[]>(STORAGE_KEYS.EXPENSES, []);
     const newExpense: Expense = {
       ...expense,
       id: generateId(),
       createdAt: new Date(),
     };
-    expenses.push(newExpense);
-    saveToStorage(STORAGE_KEYS.EXPENSES, expenses);
+    rawExpenses.push(newExpense);
+    saveToStorage(STORAGE_KEYS.EXPENSES, rawExpenses);
     return newExpense;
   },
 
   updateExpense(id: string, updates: Partial<Expense>): Expense | null {
-    const expenses = this.getAllExpenses();
-    const index = expenses.findIndex((e) => e.id === id);
+    const rawExpenses = getFromStorage<any[]>(STORAGE_KEYS.EXPENSES, []);
+    const index = rawExpenses.findIndex((e) => e.id === id);
     if (index === -1) return null;
 
-    expenses[index] = { ...expenses[index], ...updates };
-    saveToStorage(STORAGE_KEYS.EXPENSES, expenses);
-    return expenses[index];
+    rawExpenses[index] = { ...rawExpenses[index], ...updates };
+    saveToStorage(STORAGE_KEYS.EXPENSES, rawExpenses);
+    return rehydrateExpense(rawExpenses[index]);
   },
 
   deleteExpense(id: string): boolean {
-    const expenses = this.getAllExpenses();
-    const filtered = expenses.filter((e) => e.id !== id);
-    if (filtered.length === expenses.length) return false;
+    const rawExpenses = getFromStorage<any[]>(STORAGE_KEYS.EXPENSES, []);
+    const filtered = rawExpenses.filter((e) => e.id !== id);
+    if (filtered.length === rawExpenses.length) return false;
 
     saveToStorage(STORAGE_KEYS.EXPENSES, filtered);
     return true;
